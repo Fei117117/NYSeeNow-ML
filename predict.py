@@ -11,7 +11,7 @@ models = {}
 
 # Load station data
 stations_df = pd.read_csv(
-    '/SubwayData/cleaned_station_data.csv')
+    './SubwayData/cleaned_station_data.csv')
 
 
 def get_nearest_station_id(lon, lat):
@@ -41,9 +41,9 @@ def predict():
     type = 'station'  # area or station
 
     if type == 'area':
-        path = f'/SubwayData/{type}_busy/a_busy_model_{station_number}.pkl'
+        path = f'./SubwayData/{type}_busy/a_busy_model_{station_number}.pkl'
     elif type == 'station':
-        path = f'/SubwayData/{type}_busy/s_busy_model_{station_number}.pkl'
+        path = f'./SubwayData/{type}_busy/s_busy_model_{station_number}.pkl'
     else:
         return jsonify({'error': 'Invalid type.'})
 
