@@ -1,3 +1,4 @@
+from datetime import datetime
 from flask import Flask, request, jsonify
 import pickle
 import numpy as np
@@ -6,9 +7,6 @@ import pandas as pd
 from haversine import haversine
 
 app = Flask(__name__)
-
-# create a models dictionary to store loaded models
-models = {}
 
 # Load station data
 stations_df = pd.read_csv(
@@ -31,67 +29,79 @@ def predict():
     # Get the data from the POST request.
     data = request.get_json(force=True)
 
-    # Extract relevant information from the data structure
-    lon = data['geometry']['coordinates'][0]
-    lat = data['geometry']['coordinates'][1]
-    day = pd.to_datetime(data['day']).weekday() + 1
-    month = pd.to_datetime(data['day']).month
+    # Prepare the response structure
+    response = {}
 
-    # Get the nearest station id
-    station_number = get_nearest_station_id(lon, lat)
-    type = 'station'  # area or station
+    # Iterate over each attraction
+    for attraction in data['attraction_list']:
+        # Extract relevant information from the data structure
+        lon = attraction['all_details']['geometry']['coordinates'][0]
+        lat = attraction['all_details']['geometry']['coordinates'][1]
+        day_str = attraction['day'].rsplit(" ", 2)[0]
+        # Remove the "(Irish Standard Time)" part
+        day_str_clean = day_str.rsplit(" (", 1)[0]
+        date_format = "%a %b %d %Y %H:%M:%S %Z%z"
+        day = datetime.strptime(day_str_clean, date_format)
+        weekday = day.weekday() + 1
+        month = day.month
 
-    if type == 'area':
-        path = f'./SubwayData/{type}_busy/a_busy_model_{station_number}.pkl'
-    elif type == 'station':
-        path = f'./SubwayData/{type}_busy/s_busy_model_{station_number}.pkl'
-    else:
-        return jsonify({'error': 'Invalid type.'})
+        # Get the nearest station id
+        station_number = get_nearest_station_id(lon, lat)
+        type = 'area'  # area or station
 
-    try:
-        if station_number in models:
-            model = models[station_number]
+        if type == 'area':
+            path = f'./SubwayData/{type}_busy/a_busy_model_{station_number}.pkl'
+        elif type == 'station':
+            path = f'./SubwayData/{type}_busy/s_busy_model_{station_number}.pkl'
         else:
+            return jsonify({'error': 'Invalid type.'})
+
+        # Hourly predictions for the attraction
+        attraction_response = {"prediction": []}
+
+        try:
             # Load the model
             with open(path, 'rb') as handle:
                 model = pickle.load(handle)
-                models[station_number] = model
-    except FileNotFoundError:
-        return jsonify({'error': 'Model not found.'})
+        except FileNotFoundError:
+            return jsonify({'error': 'Model not found.'})
 
-     # Prepare the response structure
-    response = {}
+        # Iterate over all 24 hours
+        for hour in range(24):
+            # Prepare the input for the model including hour, day, month, and other required parameters
+            model_input = pd.DataFrame({
+                'hour': [hour],
+                'day': [weekday],
+                'month': [month],
+                'temperature': [15.3],  # Replace with actual temperature value
+                'rain_fall': [2.6],  # Replace with actual rain_fall value
+                'snow_fall': [0.0],  # Replace with actual snow_fall value
+                'Clear': [0],
+                'Clouds': [0],
+                'Drizzle': [0],
+                'Fog': [0],
+                'Haze': [0],
+                'Mist': [0],
+                'Rain': [1],
+                'Smoke': [0],
+                'Snow': [0],
+                'Thunderstorm': [0]
+            })
 
-    # Iterate over all 24 hours
-    for hour in range(24):
-        # Prepare the input for the model including hour, day, month, and other required parameters
-        model_input = pd.DataFrame({
-            'hour': [hour],
-            'day': [day],
-            'month': [month],
-            'temperature': [15.3],  # Replace with actual temperature value
-            'rain_fall': [2.6],  # Replace with actual rain_fall value
-            'snow_fall': [0.0],  # Replace with actual snow_fall value
-            'Clear': [0],
-            'Clouds': [0],
-            'Drizzle': [0],
-            'Fog': [0],
-            'Haze': [0],
-            'Mist': [0],
-            'Rain': [1],
-            'Smoke': [0],
-            'Snow': [0],
-            'Thunderstorm': [0]
-        })
+            # Make prediction using the loaded model and the input data
+            prediction = model.predict(model_input.values)
 
-        # Make prediction using the loaded model and the input data
-        prediction = model.predict(model_input.values)
+            # Take the first value of the prediction
+            output = prediction[0]
 
-        # Take the first value of the prediction
-        output = prediction[0]
+            # Add the busyness for the current hour to the attraction's response
+            attraction_response["prediction"].append(int(output))
 
-        # Add the busyness for the current hour to the response
-        response[str(hour)] = int(output)
+        # Add the attraction's response to the main response
+        if attraction['day'] not in response:
+            response[attraction['day']] = []
+        response[attraction['day']].append(
+            {attraction['name']: attraction_response})
 
     return jsonify(response)
 
