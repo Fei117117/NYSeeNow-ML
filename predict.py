@@ -7,6 +7,7 @@ from haversine import haversine
 
 app = Flask(__name__)
 
+# create a models dictionary to store loaded models
 models = {}
 
 # Load station data
@@ -48,9 +49,13 @@ def predict():
         return jsonify({'error': 'Invalid type.'})
 
     try:
-        # Load the model
-        with open(path, 'rb') as handle:
-            model = pickle.load(handle)
+        if station_number in models:
+            model = models[station_number]
+        else:
+            # Load the model
+            with open(path, 'rb') as handle:
+                model = pickle.load(handle)
+                models[station_number] = model
     except FileNotFoundError:
         return jsonify({'error': 'Model not found.'})
 
