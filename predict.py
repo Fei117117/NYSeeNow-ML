@@ -5,12 +5,15 @@ import numpy as np
 import os
 import pandas as pd
 from haversine import haversine
+import joblib
 
 app = Flask(__name__)
 
 # Load station data
-stations_df = pd.read_csv(
-    './SubwayData/cleaned_station_data.csv')
+stations_df = pd.read_csv('./SubwayData/cleaned_station_data.csv')
+
+# Load taxi zone data
+taxi_zones_df = pd.read_csv('./TaxiDataset/Taxi_Zone_Lookup.csv')
 
 
 def get_nearest_station_id(lon, lat):
@@ -21,7 +24,18 @@ def get_nearest_station_id(lon, lat):
     # Get the id of the nearest station
     nearest_station_id = stations_df.loc[distances.idxmin(), 'remote_unit_id']
 
-    return nearest_station_id
+    return nearest_station_id, distances.min()
+
+
+def get_nearest_taxi_id(lon, lat):
+    # Calculate the distance from the provided coordinates to all stations
+    distances = taxi_zones_df.apply(lambda row: haversine(
+        (lon, lat), (row['Lon'], row['Lat'])), axis=1)
+
+    # Get the id of the nearest station
+    nearest_taxi_id = taxi_zones_df.loc[distances.idxmin(), 'TaxiZone']
+
+    return nearest_taxi_id, distances.min()
 
 
 @app.route('/predict', methods=['POST'])
@@ -45,57 +59,69 @@ def predict():
         weekday = day.weekday() + 1
         month = day.month
 
-        # Get the nearest station id
-        station_number = get_nearest_station_id(lon, lat)
-        type = 'area'  # area or station
+        # Get the nearest station id and distance
+        station_number, station_distance = get_nearest_station_id(lon, lat)
 
-        if type == 'area':
-            path = f'./SubwayData/{type}_busy/a_busy_model_{station_number}.pkl'
-        elif type == 'station':
-            path = f'./SubwayData/{type}_busy/s_busy_model_{station_number}.pkl'
-        else:
-            return jsonify({'error': 'Invalid type.'})
+        # Get the nearest taxi id and distance
+        taxi_number, taxi_distance = get_nearest_taxi_id(lon, lat)
 
         # Hourly predictions for the attraction
         attraction_response = {"prediction": []}
 
-        try:
-            # Load the model
-            with open(path, 'rb') as handle:
-                model = pickle.load(handle)
-        except FileNotFoundError:
-            return jsonify({'error': 'Model not found.'})
+        if station_distance < taxi_distance:
+            path = f'./SubwayData/area_busy/a_busy_model_{station_number}.pkl'
+            for hour in range(24):
+                model_input = pd.DataFrame({
+                    'hour': [hour],
+                    'day': [weekday],
+                    'month': [month],
+                    # Replace with actual temperature value
+                    'temperature': [0.0],
+                    'rain_fall': [0.0],  # Replace with actual rain_fall value
+                    'snow_fall': [0.0],  # Replace with actual snow_fall value
+                    'Clear': [0],
+                    'Clouds': [0],
+                    'Drizzle': [0],
+                    'Fog': [0],
+                    'Haze': [0],
+                    'Mist': [0],
+                    'Rain': [0],
+                    'Smoke': [0],
+                    'Snow': [0],
+                    'Thunderstorm': [0]
+                })
+                # Load the model
+                with open(path, 'rb') as handle:
+                    model = pickle.load(handle)
+                # Make prediction using the loaded model and the input data
+                prediction = model.predict(model_input.values)
 
-        # Iterate over all 24 hours
-        for hour in range(24):
-            # Prepare the input for the model including hour, day, month, and other required parameters
-            model_input = pd.DataFrame({
-                'hour': [hour],
-                'day': [weekday],
-                'month': [month],
-                'temperature': [15.3],  # Replace with actual temperature value
-                'rain_fall': [2.6],  # Replace with actual rain_fall value
-                'snow_fall': [0.0],  # Replace with actual snow_fall value
-                'Clear': [0],
-                'Clouds': [0],
-                'Drizzle': [0],
-                'Fog': [0],
-                'Haze': [0],
-                'Mist': [0],
-                'Rain': [1],
-                'Smoke': [0],
-                'Snow': [0],
-                'Thunderstorm': [0]
-            })
+                # Take the first value of the prediction
+                output = prediction[0]
 
-            # Make prediction using the loaded model and the input data
-            prediction = model.predict(model_input.values)
+                # Add the busyness for the current hour to the attraction's response
+                attraction_response["prediction"].append(int(output))
+        else:
+            path = f'./TaxiDataset/Model/taxi_model_DOLocationID_{taxi_number}.pkl'
+            for hour in range(24):
+                model_input = pd.DataFrame([{
+                    "DOLocationID": taxi_number,
+                    "dropoff_day_number": weekday,
+                    "dropoff_month": month,
+                    "dropoff_hour": hour
+                    # Add other required parameters for the taxi model here
+                }])
+                # Load the model
+                with open(path, 'rb') as handle:
+                    model = joblib.load(handle)
+                # Make prediction using the loaded model and the input data
+                prediction = model.predict(model_input)
 
-            # Take the first value of the prediction
-            output = prediction[0]
+                # Take the first value of the prediction
+                output = prediction[0]
 
-            # Add the busyness for the current hour to the attraction's response
-            attraction_response["prediction"].append(int(output))
+                # Add the busyness for the current hour to the attraction's response
+                attraction_response["prediction"].append(int(output))
 
         # Add the attraction's response to the main response
         if attraction['day'] not in response:
@@ -121,46 +147,61 @@ def AttractionPredict():
     # Split the lat_lon into latitude and longitude
     lat, lon = map(float, lat_lon.split(','))
 
-    # Get the nearest station id
-    station_number = get_nearest_station_id(lon, lat)
-    type = 'area'  # area or station
+    # Get the nearest station id and distance
+    station_number, station_distance = get_nearest_station_id(lon, lat)
 
-    if type == 'area':
-        path = f'./SubwayData/{type}_busy/a_busy_model_{station_number}.pkl'
-    elif type == 'station':
-        path = f'./SubwayData/{type}_busy/s_busy_model_{station_number}.pkl'
-    else:
-        return jsonify({'error': 'Invalid type.'})
+    # Get the nearest taxi id and distance
+    taxi_number, taxi_distance = get_nearest_taxi_id(lon, lat)
 
-    try:
+    attraction_response = {"prediction": []}
+
+    if station_distance < taxi_distance:
+        path = f'./SubwayData/area_busy/a_busy_model_{station_number}.pkl'
+        model_input = pd.DataFrame({
+            'hour': [hour],
+            'day': [day],
+            'month': [month],
+            'temperature': [15.3],
+            'rain_fall': [2.6],  # Replace with actual rain_fall value
+            'snow_fall': [0.0],  # Replace with actual snow_fall value
+            'Clear': [0],
+            'Clouds': [0],
+            'Drizzle': [0],
+            'Fog': [0],
+            'Haze': [0],
+            'Mist': [0],
+            'Rain': [1],
+            'Smoke': [0],
+            'Snow': [0],
+            'Thunderstorm': [0]
+        })
         # Load the model
         with open(path, 'rb') as handle:
             model = pickle.load(handle)
-    except FileNotFoundError:
-        return jsonify({'error': 'Model not found.'})
+            # Make prediction using the loaded model and the input data
+            prediction = model.predict(model_input.values)
 
-    # Prepare the input for the model including hour, day, month, and other required parameters
-    model_input = pd.DataFrame({
-        'hour': [hour],
-        'day': [day],
-        'month': [month],
-        'temperature': [15.3],  # Replace with actual temperature value
-        'rain_fall': [2.6],  # Replace with actual rain_fall value
-        'snow_fall': [0.0],  # Replace with actual snow_fall value
-        'Clear': [0],
-        'Clouds': [0],
-        'Drizzle': [0],
-        'Fog': [0],
-        'Haze': [0],
-        'Mist': [0],
-        'Rain': [1],
-        'Smoke': [0],
-        'Snow': [0],
-        'Thunderstorm': [0]
-    })
+            # Take the first value of the prediction
+            output = prediction[0]
+
+            # Add the busyness for the current hour to the attraction's response
+            attraction_response["prediction"].append(int(output))
+    else:
+        path = f'./TaxiDataset/Model/taxi_model_DOLocationID_{taxi_number}.pkl'
+        for hour in range(24):
+            model_input = pd.DataFrame([{
+                "DOLocationID": taxi_number,
+                "dropoff_day_number": day,
+                "dropoff_month": month,
+                "dropoff_hour": hour
+
+            }])
+        # Load the model
+        with open(path, 'rb') as handle:
+            model = joblib.load(handle)
 
     # Make prediction using the loaded model and the input data
-    prediction = model.predict(model_input.values)
+    prediction = model.predict(model_input)
 
     # Take the first value of the prediction
     output = int(prediction[0])
