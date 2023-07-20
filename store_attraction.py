@@ -20,7 +20,7 @@ cursor = connection.cursor()
 
 # Define the SQL query to create the attractions table
 create_table_query = '''
-CREATE TABLE IF NOT EXISTS attractions (
+CREATE TABLE IF NOT EXISTS Attractions (
     attraction_id SERIAL PRIMARY KEY,
     name VARCHAR(255),
     tourism VARCHAR(255),
