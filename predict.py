@@ -154,6 +154,8 @@ def AttractionPredict():
     # Get the nearest taxi id and distance
     taxi_number, taxi_distance = get_nearest_taxi_id(lon, lat)
 
+    output = None  # Initialize the output
+
     attraction_response = {"prediction": []}
 
     if station_distance < taxi_distance:
@@ -184,7 +186,7 @@ def AttractionPredict():
                 prediction = model.predict(model_input.values)
 
                 # Take the first value of the prediction
-                output = prediction[0]
+                output = int(prediction[0])
 
         except FileNotFoundError:
             print(
