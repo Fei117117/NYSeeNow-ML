@@ -127,8 +127,9 @@ def predict():
         # Add the attraction's response to the main response
         if attraction['day'] not in response:
             response[attraction['day']] = []
-        response[attraction['day']].append(
-            {attraction['name']: attraction_response})
+        attraction["day_busyness"] = (attraction_response["prediction"])
+        attraction_string = json.dumps(attraction)
+        response[attraction['day']].append(attraction_string)
 
     return jsonify(response)
 
