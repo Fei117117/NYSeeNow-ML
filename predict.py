@@ -6,6 +6,7 @@ import os
 import pandas as pd
 from haversine import haversine
 import joblib
+import json
 
 app = Flask(__name__)
 
@@ -126,8 +127,9 @@ def predict():
         # Add the attraction's response to the main response
         if attraction['day'] not in response:
             response[attraction['day']] = []
-        response[attraction['day']].append(
-            {attraction['name']: attraction_response})
+        attraction["day_busyness"] = (attraction_response["prediction"])
+        attraction_string = json.dumps(attraction)
+        response[attraction['day']].append(attraction_string)
 
     return jsonify(response)
 
@@ -153,6 +155,8 @@ def AttractionPredict():
     # Get the nearest taxi id and distance
     taxi_number, taxi_distance = get_nearest_taxi_id(lon, lat)
 
+    output = None  # Initialize the output
+
     attraction_response = {"prediction": []}
 
     if station_distance < taxi_distance:
@@ -175,17 +179,19 @@ def AttractionPredict():
             'Snow': [0],
             'Thunderstorm': [0]
         })
-        # Load the model
-        with open(path, 'rb') as handle:
-            model = pickle.load(handle)
-            # Make prediction using the loaded model and the input data
-            prediction = model.predict(model_input.values)
+        try:
+            # Load the model
+            with open(path, 'rb') as handle:
+                model = pickle.load(handle)
+                # Make prediction using the loaded model and the input data
+                prediction = model.predict(model_input.values)
 
-            # Take the first value of the prediction
-            output = prediction[0]
+                # Take the first value of the prediction
+                output = int(prediction[0])
 
-            # Add the busyness for the current hour to the attraction's response
-            attraction_response["prediction"].append(int(output))
+        except FileNotFoundError:
+            print(
+                f"No model found for station {station_number}. Skipping this station.")
     else:
         path = f'./TaxiDataset/Model/taxi_model_DOLocationID_{taxi_number}.pkl'
         for hour in range(24):
@@ -196,15 +202,19 @@ def AttractionPredict():
                 "dropoff_hour": hour
 
             }])
-        # Load the model
-        with open(path, 'rb') as handle:
-            model = joblib.load(handle)
 
-    # Make prediction using the loaded model and the input data
-    prediction = model.predict(model_input)
+        try:
+            # Load the model
+            with open(path, 'rb') as handle:
+                model = joblib.load(handle)
+                # Make prediction using the loaded model and the input data
+                prediction = model.predict(model_input)
 
-    # Take the first value of the prediction
-    output = int(prediction[0])
+                # Take the first value of the prediction
+                output = int(prediction[0])
+        except FileNotFoundError:
+            print(
+                f"No model found for taxi zone {taxi_number}. Skipping this taxi zone.")
 
     # Create the response dictionary
     response = {
