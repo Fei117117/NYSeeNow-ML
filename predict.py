@@ -50,8 +50,8 @@ def predict():
     # Iterate over each attraction
     for attraction in data['attraction_list']:
         # Extract relevant information from the data structure
-        lon = attraction['all_details']['geometry']['coordinates'][0]
-        lat = attraction['all_details']['geometry']['coordinates'][1]
+        lon = attraction['longitude']
+        lat = attraction['latitude']
         day_str = attraction['day'].rsplit(" ", 2)[0]
         # Remove the "(Irish Standard Time)" part
         day_str_clean = day_str.rsplit(" (", 1)[0]
