@@ -70,26 +70,20 @@ def predict():
         attraction_response = {"prediction": []}
 
         if station_distance < taxi_distance:
-            path = f'./SubwayData/area_busy/a_busy_model_{station_number}.pkl'
+            path = f'./SubwayData/station_busy/s_busy_model_{station_number}.pkl'
             for hour in range(24):
                 model_input = pd.DataFrame({
                     'hour': [hour],
                     'day': [weekday],
                     'month': [month],
-                    # Replace with actual temperature value
                     'temperature': [0.0],
-                    'rain_fall': [0.0],  # Replace with actual rain_fall value
-                    'snow_fall': [0.0],  # Replace with actual snow_fall value
+                    'rain_fall': [0.0],
+                    'snow_fall': [0.0],
                     'Clear': [0],
                     'Clouds': [0],
-                    'Drizzle': [0],
-                    'Fog': [0],
-                    'Haze': [0],
                     'Mist': [0],
                     'Rain': [0],
-                    'Smoke': [0],
                     'Snow': [0],
-                    'Thunderstorm': [0]
                 })
                 # Load the model
                 with open(path, 'rb') as handle:
@@ -160,7 +154,7 @@ def AttractionPredict():
     attraction_response = {"prediction": []}
 
     if station_distance < taxi_distance:
-        path = f'./SubwayData/area_busy/a_busy_model_{station_number}.pkl'
+        path = f'./SubwayData/station_busy/s_busy_model_{station_number}.pkl'
         model_input = pd.DataFrame({
             'hour': [hour],
             'day': [day],
@@ -170,14 +164,9 @@ def AttractionPredict():
             'snow_fall': [0.0],  # Replace with actual snow_fall value
             'Clear': [0],
             'Clouds': [0],
-            'Drizzle': [0],
-            'Fog': [0],
-            'Haze': [0],
             'Mist': [0],
-            'Rain': [1],
-            'Smoke': [0],
+            'Rain': [0],
             'Snow': [0],
-            'Thunderstorm': [0]
         })
         try:
             # Load the model
