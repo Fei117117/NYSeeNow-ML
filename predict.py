@@ -167,18 +167,20 @@ def AttractionPredict():
 
     if station_distance < taxi_distance:
         path = f'./SubwayData/station_busy/s_busy_model_{station_number}.pkl'
-        model_input = pd.DataFrame({
+        for hour in range(24):
+            model_input = pd.DataFrame({
             'hour': [hour],
             'day': [day],
             'month': [month],
-            'temperature': [15.3],
-            'rain_fall': [2.6],  # Replace with actual rain_fall value
+            # Replace with actual temperature values- make call to openweather
+            'temperature': [0.0],
+            'rain_fall': [0.0],  # Replace with actual rain_fall value
             'snow_fall': [0.0],  # Replace with actual snow_fall value
             'Clear': [0],
             'Clouds': [0],
             'Mist': [0],
             'Rain': [0],
-            'Snow': [0],
+            'Snow': [0]
         })
         try:
             # Load the model
