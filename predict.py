@@ -167,20 +167,19 @@ def AttractionPredict():
 
     if station_distance < taxi_distance:
         path = f'./SubwayData/station_busy/s_busy_model_{station_number}.pkl'
-        for hour in range(24):
-            model_input = pd.DataFrame({
-            'hour': [hour],
-            'day': [day],
-            'month': [month],
-            # Replace with actual temperature values- make call to openweather
-            'temperature': [0.0],
-            'rain_fall': [0.0],  # Replace with actual rain_fall value
-            'snow_fall': [0.0],  # Replace with actual snow_fall value
-            'Clear': [0],
-            'Clouds': [0],
-            'Mist': [0],
-            'Rain': [0],
-            'Snow': [0]
+        model_input = pd.DataFrame({
+        'hour': [hour],
+        'day': [day],
+        'month': [month],
+        # Replace with actual temperature values- make call to openweather
+        'temperature': [0.0],
+        'rain_fall': [0.0],  # Replace with actual rain_fall value
+        'snow_fall': [0.0],  # Replace with actual snow_fall value
+        'Clear': [0],
+        'Clouds': [0],
+        'Mist': [0],
+        'Rain': [0],
+        'Snow': [0]
         })
         try:
             # Load the model
@@ -206,28 +205,27 @@ def AttractionPredict():
             print(f"No model found for station {station_number}. Skipping this station.")
     else:
         path = f'./TaxiDataset/Model/taxi_model_DOLocationID_{taxi_number}.pkl'
-        for hour in range(24):
-            model_input = pd.DataFrame([{
-                "DOLocationID": taxi_number,
-                "dropoff_day_number": day,
-                "dropoff_month": month,
-                "dropoff_hour": hour
-                # Add other required parameters for the taxi model here
-            }])
-            # Load the model
-            with open(path, 'rb') as handle:
-                model = joblib.load(handle)
-            # Make prediction using the loaded model and the input data
-            prediction = model.predict(model_input)
+        model_input = pd.DataFrame([{
+            "DOLocationID": taxi_number,
+            "dropoff_day_number": day,
+            "dropoff_month": month,
+            "dropoff_hour": hour
+            # Add other required parameters for the taxi model here
+        }])
+        # Load the model
+        with open(path, 'rb') as handle:
+            model = joblib.load(handle)
+        # Make prediction using the loaded model and the input data
+        prediction = model.predict(model_input)
 
-            # Take the first value of the prediction
-            output = prediction[0]
-            try: 
-            # Add the busyness for the current hour to the attraction's response
-                attraction_response["prediction"].append(int(output))
+        # Take the first value of the prediction
+        output = prediction[0]
+        try: 
+        # Add the busyness for the current hour to the attraction's response
+            attraction_response["prediction"].append(int(output))
 
-            except FileNotFoundError:
-                print(f"No model found for taxi zone {taxi_number}. Skipping this taxi zone.")
+        except FileNotFoundError:
+            print(f"No model found for taxi zone {taxi_number}. Skipping this taxi zone.")
 
     # Create the response dictionary
     response = {
