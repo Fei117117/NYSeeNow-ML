@@ -82,8 +82,8 @@ def predict():
                     'month': [month],
                     # Replace with actual temperature values- make call to openweather
                     'temperature': [0.0],
-                    'rain_fall': [0.0],  # Replace with actual rain_fall value
-                    'snow_fall': [0.0],  # Replace with actual snow_fall value
+                    'rain_fall': [0.0],
+                    'snow_fall': [0.0],
                     'Clear': [0],
                     'Clouds': [0],
                     'Mist': [0],
@@ -167,21 +167,20 @@ def AttractionPredict():
 
     if station_distance < taxi_distance:
         path = f'./SubwayData/station_busy/s_busy_model_{station_number}.pkl'
-        for hour in range(24):
-            model_input = pd.DataFrame({
-                'hour': [hour],
-                'day': [day],
-                'month': [month],
-                # Replace with actual temperature values- make call to openweather
-                'temperature': [0.0],
-                'rain_fall': [0.0],  # Replace with actual rain_fall value
-                'snow_fall': [0.0],  # Replace with actual snow_fall value
-                'Clear': [0],
-                'Clouds': [0],
-                'Mist': [0],
-                'Rain': [0],
-                'Snow': [0]
-            })
+        model_input = pd.DataFrame({
+            'hour': [hour],
+            'day': [day],
+            'month': [month],
+            'temperature': [15.3],
+            'rain_fall': [2.6],  # Replace with actual rain_fall value
+            'snow_fall': [0.0],  # Replace with actual snow_fall value
+            'Clear': [0],
+            'Clouds': [0],
+            'Mist': [0],
+            'Rain': [0],
+            'Snow': [0],
+        })
+        try:
             # Load the model
             with open(path, 'rb') as handle:
                 model = pickle.load(handle)
@@ -198,13 +197,11 @@ def AttractionPredict():
             # Take the first value of the prediction
             output = prediction
             print("Busyness prediction: ", output, " for station " ,name)
-
-
-            try: 
             # Add the busyness for the current hour to the attraction's response
-                attraction_response["prediction"].append(int(output))
-            except FileNotFoundError:
-                print(f"No model found for station {station_number}. Skipping this station.")
+            attraction_response["prediction"].append(int(output))
+
+        except FileNotFoundError:
+            print(f"No model found for station {station_number}. Skipping this station.")
     else:
         path = f'./TaxiDataset/Model/taxi_model_DOLocationID_{taxi_number}.pkl'
         for hour in range(24):
