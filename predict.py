@@ -200,6 +200,7 @@ def AttractionPredict():
             print("Busyness prediction: ", output, " for station " ,name)
             # Add the busyness for the current hour to the attraction's response
             attraction_response["prediction"].append(int(output))
+            print("From subway, pred is:", output)
 
         except FileNotFoundError:
             print(f"No model found for station {station_number}. Skipping this station.")
@@ -212,17 +213,19 @@ def AttractionPredict():
             "dropoff_hour": hour
             # Add other required parameters for the taxi model here
         }])
-        # Load the model
-        with open(path, 'rb') as handle:
-            model = joblib.load(handle)
-        # Make prediction using the loaded model and the input data
-        prediction = model.predict(model_input)
-
-        # Take the first value of the prediction
-        output = prediction[0]
         try: 
-        # Add the busyness for the current hour to the attraction's response
+            # Load the model
+            with open(path, 'rb') as handle:
+                model = joblib.load(handle)
+            # Make prediction using the loaded model and the input data
+            prediction = model.predict(model_input)
+
+            # Take the first value of the prediction
+            output = prediction[0]
+            
+            # Add the busyness for the current hour to the attraction's response
             attraction_response["prediction"].append(int(output))
+            print("From taxi, pred is:",output)
 
         except FileNotFoundError:
             print(f"No model found for taxi zone {taxi_number}. Skipping this taxi zone.")
