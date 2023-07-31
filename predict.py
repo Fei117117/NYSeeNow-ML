@@ -105,7 +105,6 @@ def predict():
                 prediction = round(float(prediction))
                 # Take the first value of the prediction
                 output = prediction
-                print(output)
 
                 # Add the busyness for the current hour to the attraction's response
                 attraction_response["prediction"].append(int(output))
@@ -198,6 +197,8 @@ def AttractionPredict():
             prediction = round(float(prediction))
             # Take the first value of the prediction
             output = prediction
+            print("Busyness prediction: ", output, " for station " ,name)
+
 
             try: 
             # Add the busyness for the current hour to the attraction's response
