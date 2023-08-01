@@ -7,8 +7,12 @@ import pandas as pd
 from haversine import haversine
 import joblib
 import json
+from flask_cors import CORS
 
 app = Flask(__name__)
+print("__name__ is ", __name__)
+CORS(app)
+
 
 # Load station data
 stations_df = pd.read_csv('./SubwayData/cleaned_station_data.csv')
@@ -76,6 +80,7 @@ def predict():
                     'hour': [hour],
                     'day': [weekday],
                     'month': [month],
+                    # Replace with actual temperature values- make call to openweather
                     'temperature': [0.0],
                     'rain_fall': [0.0],
                     'snow_fall': [0.0],
@@ -83,7 +88,7 @@ def predict():
                     'Clouds': [0],
                     'Mist': [0],
                     'Rain': [0],
-                    'Snow': [0],
+                    'Snow': [0]
                 })
                 # Load the model
                 with open(path, 'rb') as handle:
@@ -91,8 +96,15 @@ def predict():
                 # Make prediction using the loaded model and the input data
                 prediction = model.predict(model_input.values)
 
+                prediction = np.array2string(prediction)
+
+                #remove the square brackets
+                prediction = prediction.replace('[', '')
+                prediction = prediction.replace(']', '')
+                #round to nearest integer
+                prediction = round(float(prediction))
                 # Take the first value of the prediction
-                output = prediction[0]
+                output = prediction
 
                 # Add the busyness for the current hour to the attraction's response
                 attraction_response["prediction"].append(int(output))
@@ -156,63 +168,72 @@ def AttractionPredict():
     if station_distance < taxi_distance:
         path = f'./SubwayData/station_busy/s_busy_model_{station_number}.pkl'
         model_input = pd.DataFrame({
-            'hour': [hour],
-            'day': [day],
-            'month': [month],
-            'temperature': [15.3],
-            'rain_fall': [2.6],  # Replace with actual rain_fall value
-            'snow_fall': [0.0],  # Replace with actual snow_fall value
-            'Clear': [0],
-            'Clouds': [0],
-            'Mist': [0],
-            'Rain': [0],
-            'Snow': [0],
+        'hour': [hour],
+        'day': [day],
+        'month': [month],
+        # Replace with actual temperature values- make call to openweather
+        'temperature': [0.0],
+        'rain_fall': [0.0],  # Replace with actual rain_fall value
+        'snow_fall': [0.0],  # Replace with actual snow_fall value
+        'Clear': [0],
+        'Clouds': [0],
+        'Mist': [0],
+        'Rain': [0],
+        'Snow': [0]
         })
         try:
             # Load the model
             with open(path, 'rb') as handle:
                 model = pickle.load(handle)
-                # Make prediction using the loaded model and the input data
-                prediction = model.predict(model_input.values)
+            # Make prediction using the loaded model and the input data
+            prediction = model.predict(model_input.values)
 
-                # Take the first value of the prediction
-                output = int(prediction[0])
+            prediction = np.array2string(prediction)
+
+            #remove the square brackets
+            prediction = prediction.replace('[', '')
+            prediction = prediction.replace(']', '')
+            #round to nearest integer
+            prediction = round(float(prediction))
+            # Take the first value of the prediction
+            output = prediction
+            print("Busyness prediction: ", output, " for station " ,name)
+            # Add the busyness for the current hour to the attraction's response
+            attraction_response["prediction"].append(int(output))
+            print("From subway, pred is:", output)
 
         except FileNotFoundError:
-            print(
-                f"No model found for station {station_number}. Skipping this station.")
+            print(f"No model found for station {station_number}. Skipping this station.")
     else:
         path = f'./TaxiDataset/Model/taxi_model_DOLocationID_{taxi_number}.pkl'
-        for hour in range(24):
-            model_input = pd.DataFrame([{
-                "DOLocationID": taxi_number,
-                "dropoff_day_number": day,
-                "dropoff_month": month,
-                "dropoff_hour": hour
-
-            }])
-
-        try:
+        model_input = pd.DataFrame([{
+            "DOLocationID": taxi_number,
+            "dropoff_day_number": day,
+            "dropoff_month": month,
+            "dropoff_hour": hour
+            # Add other required parameters for the taxi model here
+        }])
+        try: 
             # Load the model
             with open(path, 'rb') as handle:
                 model = joblib.load(handle)
-                # Make prediction using the loaded model and the input data
-                prediction = model.predict(model_input)
+            # Make prediction using the loaded model and the input data
+            prediction = model.predict(model_input)
 
-                # Take the first value of the prediction
-                output = int(prediction[0])
+            # Take the first value of the prediction
+            output = prediction[0]
+            
+            # Add the busyness for the current hour to the attraction's response
+            attraction_response["prediction"].append(int(output))
+            print("From taxi, pred is:",output)
+
         except FileNotFoundError:
-            print(
-                f"No model found for taxi zone {taxi_number}. Skipping this taxi zone.")
+            print(f"No model found for taxi zone {taxi_number}. Skipping this taxi zone.")
 
     # Create the response dictionary
     response = {
         'name': name,
-        'prediction': output
+        'prediction': attraction_response["prediction"]
     }
 
     return jsonify(response)
-
-
-if __name__ == '__main__':
-    app.run(port=5001, debug=True)
