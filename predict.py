@@ -7,8 +7,10 @@ import pandas as pd
 from haversine import haversine
 import joblib
 import json
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 
 # Load station data
