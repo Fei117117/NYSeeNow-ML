@@ -7,11 +7,8 @@ import pandas as pd
 from haversine import haversine
 import joblib
 import json
-from flask_cors import CORS
 
 app = Flask(__name__)
-print("__name__ is ", __name__)
-CORS(app)
 
 
 # Load station data
@@ -98,10 +95,10 @@ def predict():
 
                 prediction = np.array2string(prediction)
 
-                #remove the square brackets
+                # remove the square brackets
                 prediction = prediction.replace('[', '')
                 prediction = prediction.replace(']', '')
-                #round to nearest integer
+                # round to nearest integer
                 prediction = round(float(prediction))
                 # Take the first value of the prediction
                 output = prediction
@@ -168,18 +165,18 @@ def AttractionPredict():
     if station_distance < taxi_distance:
         path = f'./SubwayData/station_busy/s_busy_model_{station_number}.pkl'
         model_input = pd.DataFrame({
-        'hour': [hour],
-        'day': [day],
-        'month': [month],
-        # Replace with actual temperature values- make call to openweather
-        'temperature': [0.0],
-        'rain_fall': [0.0],  # Replace with actual rain_fall value
-        'snow_fall': [0.0],  # Replace with actual snow_fall value
-        'Clear': [0],
-        'Clouds': [0],
-        'Mist': [0],
-        'Rain': [0],
-        'Snow': [0]
+            'hour': [hour],
+            'day': [day],
+            'month': [month],
+            # Replace with actual temperature values- make call to openweather
+            'temperature': [0.0],
+            'rain_fall': [0.0],  # Replace with actual rain_fall value
+            'snow_fall': [0.0],  # Replace with actual snow_fall value
+            'Clear': [0],
+            'Clouds': [0],
+            'Mist': [0],
+            'Rain': [0],
+            'Snow': [0]
         })
         try:
             # Load the model
@@ -190,20 +187,21 @@ def AttractionPredict():
 
             prediction = np.array2string(prediction)
 
-            #remove the square brackets
+            # remove the square brackets
             prediction = prediction.replace('[', '')
             prediction = prediction.replace(']', '')
-            #round to nearest integer
+            # round to nearest integer
             prediction = round(float(prediction))
             # Take the first value of the prediction
             output = prediction
-            print("Busyness prediction: ", output, " for station " ,name)
+            print("Busyness prediction: ", output, " for station ", name)
             # Add the busyness for the current hour to the attraction's response
             attraction_response["prediction"].append(int(output))
             print("From subway, pred is:", output)
 
         except FileNotFoundError:
-            print(f"No model found for station {station_number}. Skipping this station.")
+            print(
+                f"No model found for station {station_number}. Skipping this station.")
     else:
         path = f'./TaxiDataset/Model/taxi_model_DOLocationID_{taxi_number}.pkl'
         model_input = pd.DataFrame([{
@@ -213,7 +211,7 @@ def AttractionPredict():
             "dropoff_hour": hour
             # Add other required parameters for the taxi model here
         }])
-        try: 
+        try:
             # Load the model
             with open(path, 'rb') as handle:
                 model = joblib.load(handle)
@@ -222,13 +220,14 @@ def AttractionPredict():
 
             # Take the first value of the prediction
             output = prediction[0]
-            
+
             # Add the busyness for the current hour to the attraction's response
             attraction_response["prediction"].append(int(output))
-            print("From taxi, pred is:",output)
+            print("From taxi, pred is:", output)
 
         except FileNotFoundError:
-            print(f"No model found for taxi zone {taxi_number}. Skipping this taxi zone.")
+            print(
+                f"No model found for taxi zone {taxi_number}. Skipping this taxi zone.")
 
     # Create the response dictionary
     response = {
@@ -237,3 +236,7 @@ def AttractionPredict():
     }
 
     return jsonify(response)
+
+
+if __name__ == '__main__':
+    app.run(port=5001, debug=True)
