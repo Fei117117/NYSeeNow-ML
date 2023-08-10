@@ -240,5 +240,5 @@ def AttractionPredict():
     return jsonify(response)
 
 
-if __name__ == '__main__':
-    app.run(port=5001, debug=True)
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=5001, debug=True)
