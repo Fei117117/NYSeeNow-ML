@@ -7,11 +7,11 @@ with open('./Attractions/filtered_attractions.json') as file:
 
 # Establish a connection to the PostgreSQL database
 connection = psycopg2.connect(
-    host='nyseenow.cbqpbir87k5q.eu-west-1.rds.amazonaws.com',
-    port=5432,
-    user='fei',
-    password='22200125',
-    database='UserAccount'
+    host='##',
+    port='##',
+    user='##',
+    password='##',
+    database='##'
 )
 
 
